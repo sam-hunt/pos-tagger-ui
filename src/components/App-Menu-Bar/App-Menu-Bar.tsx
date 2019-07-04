@@ -31,7 +31,7 @@ export default function AppMenuBar() {
             school
           </Icon>
           <Typography variant="h6" color="inherit" className={classes.grow}>
-            Core NLP UI
+            Part of Speech Tagger UI
           </Typography>
         </Toolbar>
       </AppBar>

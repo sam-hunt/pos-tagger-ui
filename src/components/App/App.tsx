@@ -63,14 +63,14 @@ const App: React.FC = () => {
       <div className="grid-container">
         <div className="grid-item">
           <Paper className={classes.paper}>
-            <Typography variant="h4" component="h1" style={{paddingTop: '15px', paddingBottom: '15px'}}>Core NLP Annotator</Typography>
+            <Typography variant="h4" component="h1" style={{paddingTop: '15px', paddingBottom: '15px'}}>Annotator Input</Typography>
               <FormControl className={classes.formControl} variant="filled">
                 <InputLabel htmlFor="component-filled">
                   Type a sentence here to begin!
                 </InputLabel>
                 <FilledInput multiline
                   id="component-filled"
-                  rows={20}
+                  rows={24}
                   rowsMax={42}
                   className={classes.filledInput}
                   onChange={(event: any) => { console.log(event); return setText(event.target.value.trim()) }}
