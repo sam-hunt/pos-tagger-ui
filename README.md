@@ -1,3 +1,10 @@
+# Pos-Tagger-Ui
+
+A frontend for the [pos-tagger api](https://github.com/sam-hunt/pos-tagger) which uses the Stanford Maximum Entropy Part-of-Speech Tagger.
+Also an experimental first dive into react; no guarantees provided.
+
+![Example Screenshot](screenshot.png)
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
