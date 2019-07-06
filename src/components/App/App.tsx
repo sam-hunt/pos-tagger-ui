@@ -7,6 +7,10 @@ import Paper from '@material-ui/core/Paper';
 import ReactJson from 'react-json-view'
 import { PosName } from '../../models/pos-name';
 import { Typography, FormControl, InputLabel, FilledInput, Avatar, Chip } from '@material-ui/core';
+import DoneIcon from '@material-ui/icons/Done';
+import ClearIcon from '@material-ui/icons/Clear';
+import { purple } from '@material-ui/core/colors';
+import CircularProgress from '@material-ui/core/CircularProgress';
 
 const useStyles = makeStyles((theme: Theme) =>
   createStyles({
@@ -15,16 +19,29 @@ const useStyles = makeStyles((theme: Theme) =>
       borderRadius: '5px',
     },
     formControl: {
+      marginTop: '5px',
       width: '100%',
     },
     filledInput: {
       textAlign: 'center',
       color: 'secondary',
     },
-    chip: {
+    posChips: {
       margin: theme.spacing(1),
       color: 'black',
     },
+    annotatorChips: {
+      marginRight: '5px',
+      marginBottom: '5px',
+    },
+    progress: {
+      position: "absolute",
+      color: purple[200],
+      margin: theme.spacing(2),
+      marginTop: '18px',
+      height: '30px !important',
+      width: '30px !important',
+    }
   }),
 );
 
@@ -34,8 +51,22 @@ const App: React.FC = () => {
   const [tagSet, setTagSet] = useState<Set<string>>(new Set<string>());
   const [names, setNames] = useState<Array<PosName>>([]);
   const [hoveredToken, setHoveredToken] = useState<string>('');
+  const [annotators, setAnnotators] = useState<Map<string, boolean>>(new Map<string, boolean>(Object.entries({
+    'tokenize': true,
+    'ssplit': true,
+    'truecase': true,
+    'pos': true,
+    'lemma': true,
+    'ner': true,
+    'depparse': true,
+  })));
   const classes = useStyles();
   const urlBase = 'http://0.0.0.0:3001/v1';
+
+  const toggleAnnotator = (annotator: string) => {
+    annotators.set(annotator, !annotators.get(annotator));
+    setAnnotators(new Map<string, boolean>(annotators.entries()));
+  }
 
   useEffect(() => {
     axios
@@ -46,14 +77,18 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const annotatorsQuery: string = Array.from(annotators.entries()).filter(([,isOn]) => isOn).map(([key,]) => key).join(',');
     axios
-      .post(`${urlBase}/pos/tag`, text, { headers: { 'Content-Type': 'text/plain' } })
+      .post(`${urlBase}/pos/tag?annotators=${annotatorsQuery}`, text, { headers: { 'Content-Type': 'text/plain' } })
       .then(result => {
         setTags(result.data);
-        setTagSet(new Set<string>(result.data.map((sentence: any) => sentence.words.map((word: any) => word.pos)).flat()));
-
+        if (result.data.sentences) {
+          setTagSet(new Set<string>(result.data.sentences.map((sentence: any) => sentence.tokens.map((token: any) => token.pos)).flat()));
+        } else {
+          setTagSet(new Set<string>(result.data.tokens.map((token: any) => token.pos)));
+        }
       });
-  }, [text]);
+  }, [text, annotators]);
 
   const taggedPos: Set<string> = new Set<string>();
 
@@ -64,6 +99,16 @@ const App: React.FC = () => {
         <div className="grid-item">
           <Paper className={classes.paper}>
             <Typography variant="h4" component="h1" style={{paddingTop: '15px', paddingBottom: '15px'}}>Annotator Input</Typography>
+              {Array.from(annotators.entries()).map(([annotator]) => (
+                <Chip clickable
+                  label={annotator}
+                  style={{ backgroundColor: annotators.get(annotator) ? purple[200]: 'dimgrey'}}
+                  className={classes.annotatorChips}
+                  deleteIcon={annotators.get(annotator) ? <DoneIcon /> : <ClearIcon />}
+                  onClick={() => toggleAnnotator(annotator)}
+                  onDelete={() => toggleAnnotator(annotator)}
+                  />
+              ))}
               <FormControl className={classes.formControl} variant="filled">
                 <InputLabel htmlFor="component-filled">
                   Type a sentence here to begin!
@@ -80,7 +125,14 @@ const App: React.FC = () => {
         </div>
         <div className="grid-item">
           <Paper className={classes.paper} style={{backgroundColor: '#1E1E1E'}}>
-            <Typography variant="h4" component="h1" style={{ paddingTop: '15px', paddingBottom: '15px' }}>Parts of Speech</Typography>
+            <Typography variant="h4" component="h1" style={{ paddingTop: '15px', paddingBottom: '15px' }}>
+              Parts of Speech {!(
+                annotators.get('ner') ||
+                annotators.get('lemma') ||
+                annotators.get('depparse') ||
+                annotators.get('pos')
+              ) ? <small style={{ color: '#FF6F61', opacity: 0.5}}>(disabled)</small> : ''}
+            </Typography>
             {names.map((name, i) => (
               <Chip
                 avatar={<Avatar>{name.token}</Avatar>}
@@ -90,7 +142,7 @@ const App: React.FC = () => {
                   backgroundColor: `hsl(${360 * i / names.length},100%,82%)`,
                   opacity: tagSet.has(name.token) || hoveredToken === name.token ? 1 : 0.3,
                 }}
-                className={classes.chip}
+                className={classes.posChips}
                 onMouseEnter={() => setHoveredToken(name.token)}
                 onMouseLeave={() => setHoveredToken('')}
                 />
@@ -99,7 +151,10 @@ const App: React.FC = () => {
         </div>
         <div className="grid-item">
           <Paper className={classes.paper} style={{ backgroundColor: '#1E1E1E' }}>
-            <Typography variant="h4" component="h1" style={{ paddingTop: '15px', paddingBottom: '15px' }}>Text Annotations</Typography>
+            <Typography variant="h4" component="h1" style={{ paddingTop: '15px', paddingBottom: '15px', display: 'inline-block' }}>
+              Text Annotations
+            </Typography>
+            {/* {1 > 0 ? <CircularProgress  className={classes.progress} /> : ''} */}
             <ReactJson
               src={tags}
               theme='twilight'
@@ -108,7 +163,7 @@ const App: React.FC = () => {
               displayObjectSize={false}
               indentWidth={4}
               enableClipboard={false}
-              collapsed={4}
+              collapsed={5}
               style={{paddingLeft: '20px', borderRadius: '5px'}}
               >
             </ReactJson>
